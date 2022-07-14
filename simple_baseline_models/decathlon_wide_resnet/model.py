@@ -25,6 +25,9 @@ import math
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from wrn1d import WideResNet1d
+from wrn2d import WideResNet2d
+from wrn3d import WideResNet3d
 
 # seeding randomness for reproducibility
 np.random.seed(42)
@@ -85,15 +88,55 @@ class Model:
             "Device Found = ", self.device, "\nMoving Model and Data into the device..."
         )
 
+        # TODO
         self.input_shape = (sequence_size, channel, row_count, col_count)
         print("\n\nINPUT SHAPE = ", self.input_shape)
 
         # getting an object for the PyTorch Model class for Model Class
         # use CUDA if available
-        self.pytorchmodel = TorchModel(self.input_shape, self.output_dim)
+        # TODO
+        depth = 10 # TODO increase to 40 
+        spacetime_dims = np.count_nonzero(
+            np.array(self.input_shape)[[0, 2, 3]] != 1)
+        logger.info(f"Using WRN of dimension {spacetime_dims}")
+        if spacetime_dims == 1:
+            self.model = WideResNet1d(
+                depth=depth,
+                num_classes=self.output_dim,
+                input_shape=self.input_shape,
+                widen_factor=4,
+                dropRate=0.0,
+                in_channels=channel, )
+        elif spacetime_dims == 2:
+            self.model = WideResNet2d(
+                depth=depth,
+                num_classes=self.output_dim,
+                input_shape=self.input_shape,
+                widen_factor=4,
+                dropRate=0.0,
+                in_channels=channel, )
+        elif spacetime_dims == 3:
+            self.model = WideResNet3d(
+                depth=depth,
+                num_classes=self.output_dim,
+                input_shape=self.input_shape,
+                widen_factor=4,
+                dropRate=0.0,
+                in_channels=channel, )
+        elif spacetime_dims == 0: # Special case where we have channels only
+            self.model = WideResNet1d(
+                depth=depth,
+                num_classes=self.output_dim,
+                input_shape=self.input_shape,
+                widen_factor=4,
+                dropRate=0.0,
+                in_channels=1, )
+        else:
+            raise NotImplementedError
+
         print("\nPyModel Defined\n")
-        print(self.pytorchmodel)
-        self.pytorchmodel.to(self.device)
+        print(self.model)
+        self.model.to(self.device)
 
         # PyTorch Optimizer and Criterion
         if self.metadata_.get_task_type() == "continuous":
@@ -105,7 +148,7 @@ class Model:
         else:
             raise NotImplementedError
 
-        self.optimizer = torch.optim.Adam(self.pytorchmodel.parameters(), lr=1e-2)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-2)
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -326,7 +369,7 @@ class Model:
         Return:
           None, updates the model parameters
         """
-        self.pytorchmodel.train()
+        self.model.train()
         data_iterator = iter(self.trainloader)
         for _ in range(steps):
             try:
@@ -340,7 +383,7 @@ class Model:
             labels = labels.float().to(self.device)
             optimizer.zero_grad()
 
-            logits = self.pytorchmodel(images)
+            logits = self.model(images)
             # print('logits.shape', logits.shape)
             # print('labels', labels.shape)
             # FIXME make sure that things are correctly reshaped...
@@ -395,13 +438,13 @@ class Model:
         """
         preds = []
         with torch.no_grad():
-            self.pytorchmodel.eval()
+            self.model.eval()
             for images, _ in iter(dataloader):
                 if torch.cuda.is_available():
                     images = images.float().cuda()
                 else:
                     images = images.float()
-                logits = self.pytorchmodel(images)
+                logits = self.model(images)
 
                 # Choose correct prediction type
                 if self.metadata_.get_task_type() == "continuous":
