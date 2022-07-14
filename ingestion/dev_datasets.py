@@ -77,6 +77,8 @@ class DecathlonMetadata(object):
     def get_task_type(self):
         return self.metadata_["task_type"]
 
+    def get_final_metric(self):
+        return self.metadata_["final_metric"]
 
 """
 General Dataset class; wrapper around Datasets for each of the tasks
