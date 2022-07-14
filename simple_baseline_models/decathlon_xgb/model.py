@@ -1,14 +1,11 @@
 """An example of code submission for the AutoML Decathlon challenge.
-
 It implements 3 compulsory methods ('__init__', 'train' and 'test') and
 an attribute 'done_training' for indicating if the model will not proceed more
 training due to convergence or limited time budget.
-
 Your changes should be to the TorchModel class, and '__init__' and 'train' in the 'Model' class, which will determine:
 - How your method/model are initialized given the task metadata
 - How your method/model will utilize the provided training data, validation data, and remaining time budget
 Feel free to add new variables/functions to augment your method.
-
 To create a valid submission, zip model.py and metadata together with other necessary files
 such as tasks_to_run.yaml, Python modules/packages, pre-trained weights, etc. The final zip file
 should not exceed 300MB.
@@ -26,12 +23,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from sklearn.metrics import (
-    accuracy_score,
-    roc_auc_score,
-    f1_score,
-    average_precision_score,
-)
 from sklearn.model_selection import train_test_split
 
 import xgboost as xgb
@@ -65,7 +56,7 @@ def merge_batches(dataloader: DataLoader, is_single_label:bool):
     return x_matrix, y_matrix
     
     
-def get_xgb_model(task, random_state=None):
+def get_xgb_model(task_type:str, output_size: int, random_state=None):
     # Adapted from NB360 xgboost example
     
     # Common model params
@@ -82,75 +73,34 @@ def get_xgb_model(task, random_state=None):
     if random_state:
         model_params["random_state"]=random_state
     
-    # Cases for each task
-    if task == "spherical":
-        model_params = {
-            "objective": "multi:softmax",
-            "eval_metric": "merror",
-            "num_class": 100,
-            **model_params,
-        }
-
+    # Cases
+    if task_type=="single-label":
+        if output_size>2: # multi-class
+            model_params = {
+                "objective": "multi:softmax",
+                "eval_metric": "merror",
+                "num_class": output_size,
+                **model_params,
+            }
+        else:
+            model_params = { # binary
+                "objective": "binary:logistic",
+                **model_params,
+            }
         model = xgb.XGBClassifier(**model_params)
-
-    elif task == "ninapro":
-        model_params = {
-            "objective": "multi:softmax",
-            "eval_metric": "merror",
-            "num_class": 18,
-            **model_params,
-        }
-
-        model = xgb.XGBClassifier(**model_params)
-
-    elif task == "deepsea":
+    elif task_type=="multi-label":
         model_params = {
             **model_params,
         }
         model = xgb.XGBClassifier(**model_params)
-
-    elif task == "ecg":
-        model_params = {
-            "objective": "multi:softmax",
-            **model_params,
-        }
-        model = xgb.XGBClassifier(**model_params)
-
-    elif task == "fsd50k":
-        model_params = {
-            **model_params,
-        }
-        model = xgb.XGBClassifier(**model_params)
-    elif task == "cosmic":
-        model_params = {
-            **model_params,
-        }
-        model = xgb.XGBClassifier(**model_params)
-
-    elif task == "crypto":
+    elif task_type=="continuous":
         model_params = {
             **model_params,
         }
         model = xgb.XGBRegressor(**model_params)
-    elif task == "nottingham":
-        model_params = {
-            **model_params,
-        }
-        model = xgb.XGBClassifier(**model_params)
-    elif task == "ember":
-        model_params = {
-            "objective": "binary:logistic",
-            **model_params,
-        }
-        model = xgb.XGBClassifier(**model_params)
-    elif task == "navierstokes":
-        model_params = {
-            **model_params,
-        }
-        model = xgb.XGBRegressor(**model_params)
-    else:
+    else: 
         raise NotImplementedError
-    
+        
     return model
 
 class Model:
@@ -168,7 +118,7 @@ class Model:
         self.metadata_ = metadata
         self.task = self.metadata_.get_dataset_name()
         self.task_type = self.metadata_.get_task_type()
-
+        
         # Getting details of the data from meta data
         # Product of output dimensions in case of multi-dimensional outputs...
         self.output_dim = math.prod(self.metadata_.get_output_shape())
@@ -192,7 +142,7 @@ class Model:
         print("\n\nINPUT SHAPE = ", self.input_shape)
 
         # Creating xgb model
-        self.model = get_xgb_model(self.task)
+        self.model = get_xgb_model(self.task_type, self.output_dim)
         
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -214,7 +164,6 @@ class Model:
         Args:
           dataset:
           batch_size : batch_size for training set
-
         Return:
           dataloader: PyTorch Dataloader
         """
@@ -242,11 +191,9 @@ class Model:
         '''
         
         """Train this algorithm on the Pytorch dataset.
-
         This method will be called REPEATEDLY during the whole training/predicting
         process. So your `train` method should be able to handle repeated calls and
         hopefully improve your model performance after each call.
-
         ****************************************************************************
         ****************************************************************************
         IMPORTANT: the loop of calling `train` and `test` will only run if
@@ -258,18 +205,15 @@ class Model:
           converged or when there is not enough time for next round of training.
         ****************************************************************************
         ****************************************************************************
-
         Args:
           dataset: a `DecathlonDataset` object. Each of its examples is of the form
                 (example, labels)
               where `example` is a dense 4-D Tensor of shape
                 (sequence_size, row_count, col_count, num_channels)
               and `labels` is a 1-D or 2-D Tensor
-
           val_dataset: a 'DecathlonDataset' object. Is not 'None' if a pre-split validation set is provided, in which case you should use it for any validation purposes. Otherwise, you are free to create your own validation split(s) as desired.
           
           val_metadata: a 'DecathlonMetadata' object, corresponding to 'val_dataset'.
-
           remaining_time_budget: time remaining to execute train(). The method
               should keep track of its execution time to avoid exceeding its time
               budget. If remaining_time_budget is None, no time budget is imposed.
@@ -287,7 +231,7 @@ class Model:
 
         # Training (no loop)
         x_train, y_train = merge_batches(self.trainloader, (self.task_type=="single-label") )
-
+        print(x_train.shape, y_train.shape)
         if val_dataset:
             valloader = self.get_dataloader(val_dataset, self.test_batch_size, "test")
             x_valid, y_valid = merge_batches(valloader, (self.task_type=="single-label") )
@@ -322,7 +266,6 @@ class Model:
 
     def test(self, dataset, remaining_time_budget=None):
         """Test this algorithm on the Pytorch dataloader.
-
         Args:
           Same as that of `train` method, except that the `labels` will be empty.
         Returns:
