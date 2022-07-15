@@ -4,11 +4,6 @@ It implements 3 compulsory methods ('__init__', 'train' and 'test') and
 an attribute 'done_training' for indicating if the model will not proceed more
 training due to convergence or limited time budget.
 
-Your changes should be to the TorchModel class, and '__init__' and 'train' in the 'Model' class, which will determine:
-- How your method/model are initialized given the task metadata
-- How your method/model will utilize the provided training data, validation data, and remaining time budget
-Feel free to add new variables/functions to augment your method.
-
 To create a valid submission, zip model.py and metadata together with other necessary files
 such as tasks_to_run.yaml, Python modules/packages, pre-trained weights, etc. The final zip file
 should not exceed 300MB.
@@ -36,7 +31,6 @@ torch.manual_seed(1)
 # PyTorch Model class
 class TorchModel(nn.Module):
     '''
-    CHANGE ME
     Defines a module that will be created in '__init__' of the 'Model' class below, and will be used for training and predictions. 
     '''
     def __init__(self, input_shape, output_dim):
@@ -56,7 +50,6 @@ class TorchModel(nn.Module):
 class Model:
     def __init__(self, metadata):
         '''
-        CHANGE ME
         The initalization procedure for your method given the metadata of the task
         '''
         """
@@ -70,7 +63,6 @@ class Model:
 
         # Getting details of the data from meta data
         # Product of output dimensions in case of multi-dimensional outputs...
-        # FIXME
         self.output_dim = math.prod(self.metadata_.get_output_shape())
 
         self.num_examples_train = self.metadata_.size()
