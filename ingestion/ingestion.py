@@ -293,7 +293,7 @@ def ingestion_main(ingestion_success, args, dataset_name):
     test_metadata = extract_metadata(D_test)
     num_examples_test = test_metadata.size()  # scalar int
     output_dim = np.prod(test_metadata.get_output_shape())  # tuple
-    correct_prediction_shape = (num_examples_test, output_dim)  ### Sam TOFIX
+    correct_prediction_shape = (num_examples_test, output_dim) 
 
     ## if fsd50k, get corresponding validation metadata
     val_metadata = extract_metadata(D_val) if D_val else None
