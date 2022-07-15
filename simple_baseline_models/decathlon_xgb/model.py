@@ -146,12 +146,7 @@ class Model:
         # Cumulated number of training steps
         self.birthday = time.time()
         self.total_train_time = 0
-        self.cumulated_num_steps = 0
-        self.estimated_time_per_step = None
         self.total_test_time = 0
-        self.cumulated_num_tests = 0
-        self.estimated_time_test = None
-        self.trained = False
 
 #         # no of examples at each step/batch
         self.train_batch_size = 64
@@ -184,23 +179,10 @@ class Model:
 
     def train(self, dataset, val_dataset=None, val_metadata=None, remaining_time_budget=None):
         '''
-        CHANGE ME
         The training procedure of your method given training data, validation data (which is only directly provided in certain tasks, otherwise you are free to create your own validation strategies), and remaining time budget for training.
         '''
         
         """Train this algorithm on the Pytorch dataset.
-        This method will be called REPEATEDLY during the whole training/predicting
-        process. So your `train` method should be able to handle repeated calls and
-        hopefully improve your model performance after each call.
-        ****************************************************************************
-        ****************************************************************************
-        IMPORTANT: the loop of calling `train` and `test` will only run if
-            self.done_training = False
-          (the corresponding code can be found in ingestion.py, search
-          'M.done_training')
-          Otherwise, the loop will go on until the time budget is used up. Please
-          pay attention to set self.done_training = True when you think the model is
-          converged or when there is not enough time for next round of training.
         ****************************************************************************
         ****************************************************************************
         Args:
@@ -215,6 +197,8 @@ class Model:
           remaining_time_budget: time remaining to execute train(). The method
               should keep track of its execution time to avoid exceeding its time
               budget. If remaining_time_budget is None, no time budget is imposed.
+              
+          remaining_time_budget: the time budget constraint for the task, which may influence the training procedure.
         """
 
         # If PyTorch dataloader for training set doen't already exists, get the train dataloader
@@ -247,7 +231,7 @@ class Model:
                 
         train_end = time.time()
 
-        # Update for time budget managing
+
         train_duration = train_end - train_start
         self.total_train_time += train_duration
         logger.info(
@@ -259,8 +243,6 @@ class Model:
             )
         )
 
-        # Only need 1 pass of xgboost; done training
-        self.done_training = True
 
     def test(self, dataset, remaining_time_budget=None):
         """Test this algorithm on the Pytorch dataloader.
@@ -271,26 +253,12 @@ class Model:
               here `sample_count` is the number of examples in this dataset as test
               set and `output_dim` is the number of labels to be predicted. The
               values should be binary or in the interval [0,1].
+          remaining_time_budget: the remaining time budget left for testing, post-training 
         """
 
         test_begin = time.time()
-        if (
-            remaining_time_budget
-            and self.estimated_time_test
-            and self.estimated_time_test > remaining_time_budget
-        ):
-            logger.info(
-                "Not enough time for test. "
-                + "Estimated time for test: {:.2e}, ".format(self.estimated_time_test)
-                + "But remaining time budget is: {:.2f}. ".format(remaining_time_budget)
-                + "Stop train/predict process by returning None."
-            )
-            return None
 
-        msg_est = ""
-        if self.estimated_time_test:
-            msg_est = "estimated time: {:.2e} sec.".format(self.estimated_time_test)
-        logger.info("Begin testing..." + msg_est)
+        logger.info("Begin testing...")
 
         if not hasattr(self, "testloader"):
             self.testloader = self.get_dataloader(
@@ -312,16 +280,12 @@ class Model:
         # Update some variables for time management
         test_duration = test_end - test_begin
         self.total_test_time += test_duration
-        self.cumulated_num_tests += 1
-        self.estimated_time_test = self.total_test_time / self.cumulated_num_tests
+
         logger.info(
             "[+] Successfully made one prediction. {:.2f} sec used. ".format(
                 test_duration
             )
             + "Total time used for testing: {:.2f} sec. ".format(self.total_test_time)
-            + "Current estimated time for test: {:.2e} sec.".format(
-                self.estimated_time_test
-            )
         )
         return predictions
 
