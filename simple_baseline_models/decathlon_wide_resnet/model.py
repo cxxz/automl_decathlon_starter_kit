@@ -269,8 +269,8 @@ class Model:
 
             # Training loop
             # TODO remove
-            steps_to_train = len(self.trainloader)
-            logger.info(f"steps_to_train {steps_to_train}")
+            # steps_to_train = len(self.trainloader)
+            # logger.info(f"steps_to_train {steps_to_train}")
             # TODO remove
             self.trainloop(self.criterion, self.optimizer, steps=steps_to_train)
             train_end = time.time()
