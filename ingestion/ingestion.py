@@ -153,23 +153,23 @@ def get_time_budget(dataset_name):
     elif dataset_name == "spherical":
         return 5 * hours
     elif dataset_name == "ninapro":
-        return 3 * hours
+        return 5 * hours
     elif dataset_name == "fsd50k":
-        return 18 * hours
+        return 20 * hours
     elif dataset_name == "cosmic":
         return 5 * hours
     elif dataset_name == "ecg":
-        return 9 * hours
+        return 10 * hours
     elif dataset_name == "deepsea":
-        return 4 * hours
+        return 5 * hours
     elif dataset_name == "nottingham":
-        return 2 * hours
+        return 5 * hours
     elif dataset_name == "crypto":
-        return 2 * hours
+        return 5 * hours
     elif dataset_name == "ember":
-        return 16 * hours
+        return 20 * hours
     else:
-        return 3 * hours
+        return 5 * hours
 
 
 def _HERE(*args):
