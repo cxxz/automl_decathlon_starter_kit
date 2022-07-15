@@ -57,9 +57,9 @@ Previous updates:
 # will first have a start.txt file written by ingestion then receive
 # all predictions made during the whole train/predict process
 # (thus this directory is updated when a new prediction is made):
-# 	ninapro.predict_0
-# 	ninapro.predict_1
-# 	ninapro.predict_2
+#   ninapro.predict_0
+#   ninapro.predict_1
+#   ninapro.predict_2
 #        ...
 # after ingestion has finished, a final prediction file ninapro.predict and
 # end.txt will be written, containing info on the duration ingestion used.
@@ -116,6 +116,7 @@ import yaml
 
 from dev_datasets import extract_metadata
 
+import data_io
 
 def get_logger(verbosity_level, use_error_log=False):
     """Set logging format to something like:
@@ -297,7 +298,7 @@ def ingestion_main(ingestion_success, args, dataset_name):
     path.append(code_dir)
     # IG: to allow submitting the starting kit as sample submission
     path.append(code_dir + "/test_model")
-    import data_io
+
     from dev_datasets import DecathlonDataset
 
     data_io.mkdir(output_dir)
@@ -332,29 +333,14 @@ def ingestion_main(ingestion_success, args, dataset_name):
 
     ## if fsd50k, get corresponding validation metadata
     val_metadata = extract_metadata(D_val) if D_val else None
+   
+    logger.info("Creating model...")
+    from model import Model  # in participants' model.py
 
-    # 20 min for participants to initializing and install other packages
-    try:
-        init_time_budget = 20 * 60  # time budget for initilization.
-        timer = Timer()
-        timer.set(init_time_budget)
-        with timer.time_limit("Initialization"):
-            ##### Begin creating model #####
-            logger.info("Creating model...this process should not exceed 20min.")
-            from model import Model  # in participants' model.py
-
-            M = Model(
-                train_metadata
-            )  # The metadata of D_train and D_test only differ in sample_count
-            ###### End creating model ######
-    except TimeoutException as e:
-        logger.info(
-            "[-] Initialization phase exceeded time budget. Move to train/predict phase"
-        )
-    except Exception as e:
-        logger.error("Failed to initializing model.")
-        logger.error("Encountered exception:\n" + str(e), exc_info=True)
-
+    M = Model(
+        train_metadata
+    )  # The metadata of D_train and D_test only differ in sample_count
+    
     # Mark starting time of ingestion
     start = time.time()
     logger.info(
@@ -370,90 +356,91 @@ def ingestion_main(ingestion_success, args, dataset_name):
         time_budget=time_budget,
         task_name=basename.split(".")[0],
     )
-
-    try:
-        # Check if the model has methods `train` and `test`.
-        for attr in ["train", "test"]:
-            if not hasattr(M, attr):
-                raise ModelApiError(
-                    "Your model object doesn't have the method "
-                    + "`{}`. Please implement it in model.py."
-                )
-
-        # Check if model.py uses new done_training API instead of marking
-        # stopping by returning None
-        use_done_training_api = hasattr(M, "done_training")
-        if not use_done_training_api:
-            logger.warning(
-                "Your model object doesn't have an attribute "
-                + "`done_training`. But this is necessary for ingestion "
-                + "program to know whether the model has done training "
-                + "and to decide whether to proceed more training. "
-                + "Please add this attribute to your model."
+    
+    '''try:'''
+    # Check if the model has methods `train` and `test`.
+    for attr in ["train", "test"]:
+        if not hasattr(M, attr):
+            raise ModelApiError(
+                "Your model object doesn't have the method "
+                + "`{}`. Please implement it in model.py."
             )
 
-        # Keeping track of how many predictions are made
-        prediction_order_number = 0
+    # Check if model.py uses new done_training API instead of marking
+    # stopping by returning None
+    use_done_training_api = hasattr(M, "done_training")
+    if not use_done_training_api:
+        logger.warning(
+            "Your model object doesn't have an attribute "
+            + "`done_training`. But this is necessary for ingestion "
+            + "program to know whether the model has done training "
+            + "and to decide whether to proceed more training. "
+            + "Please add this attribute to your model."
+        )
 
-        # Start the CORE PART: train/predict process
-        last_pred = None
-        while not (use_done_training_api and M.done_training):
-            remaining_time_budget = start + time_budget - time.time()
-            # Train the model
-            logger.info("Begin training the model...")
-            M.train(
-                D_train,
-                D_val,
-                val_metadata,
-                remaining_time_budget=remaining_time_budget,
-            )
-            logger.info("Finished training the model.")
-            remaining_time_budget = start + time_budget - time.time()
-            # Make predictions using the trained model
+    # Keeping track of how many predictions are made
+    prediction_order_number = 0
+
+    # Start the CORE PART: train/predict process
+    last_pred = None
+    while not (use_done_training_api and M.done_training):
+        remaining_time_budget = start + time_budget - time.time()
+        # Train the model
+        logger.info("Begin training the model...")
+        M.train(
+            D_train,
+            D_val,
+            val_metadata,
+            remaining_time_budget=remaining_time_budget,
+        )
+        logger.info("Finished training the model.")
+        remaining_time_budget = start + time_budget - time.time()
+        # Make predictions using the trained model
+        logger.info(
+            "Begin testing the model by making predictions " + "on test set..."
+        )
+        Y_pred = M.test(D_test, remaining_time_budget=remaining_time_budget)
+        logger.info("Finished making predictions.")
+        if Y_pred is None:  # Stop train/predict process if Y_pred is None
+            Y_pred = last_pred
             logger.info(
-                "Begin testing the model by making predictions " + "on test set..."
+                "The method model.test returned `None`. "
+                + "Stop train/predict process."
             )
-            Y_pred = M.test(D_test, remaining_time_budget=remaining_time_budget)
-            logger.info("Finished making predictions.")
-            if Y_pred is None:  # Stop train/predict process if Y_pred is None
-                Y_pred = last_pred
-                logger.info(
-                    "The method model.test returned `None`. "
-                    + "Stop train/predict process."
-                )
-                break
-            else:  # Check if the prediction has good shape
-                prediction_shape = tuple(Y_pred.shape)
-                if prediction_shape != correct_prediction_shape:
-                    raise BadPredictionShapeError(
-                        "Bad prediction shape! Expected {} but got {}.".format(
-                            correct_prediction_shape, prediction_shape
-                        )
+            break
+        else:  # Check if the prediction has good shape
+            prediction_shape = tuple(Y_pred.shape)
+            if prediction_shape != correct_prediction_shape:
+                raise BadPredictionShapeError(
+                    "Bad prediction shape! Expected {} but got {}.".format(
+                        correct_prediction_shape, prediction_shape
                     )
-                last_pred = Y_pred
-            # Write timestamp to 'start.txt'
-            write_timestamp(
-                output_dir, predict_idx=prediction_order_number, timestamp=time.time()
-            )
-            # Prediction files: ninapro.predict_0, ninapro.predict_1, ...
-            filename_test = basename + ".predict_" + str(prediction_order_number)
-            # Write predictions to output_dir
-            data_io.write(os.path.join(output_dir, filename_test), Y_pred)
-            prediction_order_number += 1
-            logger.info(
-                "[+] {0:d} predictions made, time spent so far {1:.2f} sec".format(
-                    prediction_order_number, time.time() - start
                 )
+            last_pred = Y_pred
+        # Write timestamp to 'start.txt'
+        write_timestamp(
+            output_dir, predict_idx=prediction_order_number, timestamp=time.time()
+        )
+        # Prediction files: ninapro.predict_0, ninapro.predict_1, ...
+        filename_test = basename + ".predict_" + str(prediction_order_number)
+        # Write predictions to output_dir
+        data_io.write(os.path.join(output_dir, filename_test), Y_pred)
+        prediction_order_number += 1
+        logger.info(
+            "[+] {0:d} predictions made, time spent so far {1:.2f} sec".format(
+                prediction_order_number, time.time() - start
             )
-            remaining_time_budget = start + time_budget - time.time()
-            logger.info("[+] Time left {0:.2f} sec".format(remaining_time_budget))
-            if remaining_time_budget <= 0:
-                break
+        )
+        remaining_time_budget = start + time_budget - time.time()
+        logger.info("[+] Time left {0:.2f} sec".format(remaining_time_budget))
+        if remaining_time_budget <= 0:
+            break
+    '''
     except Exception as e:
         ingestion_success = False
         logger.info("Failed to run ingestion.")
         logger.error("Encountered exception:\n" + str(e), exc_info=True)
-
+    '''
     ### write final prediction result, will be used to calculate the score
     filename_test = basename + ".predict"
     if Y_pred is None:
@@ -487,7 +474,7 @@ def ingestion_main(ingestion_success, args, dataset_name):
 
 
 if __name__ == "__main__":
-
+    
     #### Check whether everything went well
     ingestion_success = True
 
@@ -559,8 +546,30 @@ if __name__ == "__main__":
         logger.info("Default task list: {}".format(" ".join(tasks)))
 
     base_output_dir = args.output_dir
+    
     for task in tasks:
         logger.info("Starting ingestion for {}".format(task))
         args.output_dir = os.path.join(base_output_dir, task)
-        ingestion_main(ingestion_success, args, task)
+
+        try:
+            time_budget = args.time_budget if args.time_budget is not None else get_time_budget(task)
+            timer = Timer()
+            timer.set(time_budget)
+            with timer.time_limit("Ingestion"):
+                ##### Begin creating model #####
+                logger.info("Starting ingestion for {}, this has a time constraint of {} s.".format(task, time_budget))
+                ingestion_main(ingestion_success, args, task)
+        except TimeoutException as e:
+            logger.info(
+                "Ingestion timed out on {}; will remove prediction directory".format(task)
+            )
+            data_io.rmdir(args.output_dir)
+
+        except Exception as e:
+            logger.error("Ingestion failed!")
+            logger.error("Encountered exception:\n" + str(e), exc_info=True)
+            data_io.rmdir(args.output_dir)
+
+
+            
         logger.info("Ended ingestion for {}".format(task))
