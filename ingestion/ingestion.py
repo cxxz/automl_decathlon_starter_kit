@@ -12,30 +12,6 @@ code written by participants (with `model.py`) and one dataset as input,
 run the code on the dataset and produce predictions on test set. For more
 information on the code/directory structure, please see comments in this
 code (ingestion.py) and the README file of the starting kit.
-Previous updates:
-20220707:  Adapt the code to AutoML Decathlon competition
-20191204: [ZY] Add timer and separate model initialization from train/predict
-               process, : now model initilization doesn't consume time budget
-               quota (but can only use 20min)
-20190820: [ZY] Mark the beginning of ingestion right before model.py to reduce
-               variance
-20190708: [ZY] Integrate Julien's parallel data loader
-20190516: [ZY] Change time budget to 20 minutes.
-20190508: [ZY] Add time_budget to 'start.txt'
-20190507: [ZY] Write timestamps to 'start.txt'
-20190505: [ZY] Use argparse to parse directories AND time budget;
-               Rename input_dir to dataset_dir;
-               Rename submission_dir to code_dir;
-20190504: [ZY] Check if model.py has attribute done_training and use it to
-               determinate whether ingestion has ended;
-               Use module-specific logger instead of logging (with root logger);
-               At beginning, write start.txt with ingestion_pid and start_time;
-               In the end, write end.txt with end_time and ingestion_success;
-20190429: [ZY] Remove useless code block; better code layout.
-20190425: [ZY] Check prediction shape.
-20190424: [ZY] Use logging instead of logger; remove start.txt checking;
-20190419: [ZY] Try-except clause for training process;
-          always terminates successfully.
 """
 # The dataset directory dataset_dir (e.g. sample_data/) contains one dataset
 # folder (e.g. ninapro) with the training set and test set. The directory structure
@@ -81,17 +57,6 @@ Previous updates:
 # model.Model.train
 # model.Model.test
 #
-# ALL INFORMATION, SOFTWARE, DOCUMENTATION, AND DATA ARE PROVIDED "AS-IS".
-# UNIVERSITE PARIS SUD, CHALEARN, AND/OR OTHER ORGANIZERS OR CODE AUTHORS DISCLAIM
-# ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY PARTICULAR PURPOSE, AND THE
-# WARRANTY OF NON-INFRIGEMENT OF ANY THIRD PARTY'S INTELLECTUAL PROPERTY RIGHTS.
-# IN NO EVENT SHALL UNIVERSITE PARIS SUD AND/OR OTHER ORGANIZERS BE LIABLE FOR ANY SPECIAL,
-# INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING OUT OF OR IN
-# CONNECTION WITH THE USE OR PERFORMANCE OF SOFTWARE, DOCUMENTS, MATERIALS,
-# PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
-#
-# Main contributors: Isabelle Guyon and Zhengying Liu
 
 # =========================== BEGIN OPTIONS ==============================
 
