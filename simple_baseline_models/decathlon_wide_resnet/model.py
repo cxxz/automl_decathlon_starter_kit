@@ -19,6 +19,7 @@ import math
 
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 from wrn1d import WideResNet1d
 from wrn2d import WideResNet2d
@@ -30,9 +31,10 @@ torch.manual_seed(1)
 
 # PyTorch Model class
 class TorchModel(nn.Module):
-    '''
-    Defines a module that will be created in '__init__' of the 'Model' class below, and will be used for training and predictions. 
-    '''
+    """
+    Defines a module that will be created in '__init__' of the 'Model' class below, and will be used for training and predictions.
+    """
+
     def __init__(self, input_shape, output_dim):
         """a simple linear model"""
         super(TorchModel, self).__init__()
@@ -49,9 +51,9 @@ class TorchModel(nn.Module):
 
 class Model:
     def __init__(self, metadata):
-        '''
+        """
         The initalization procedure for your method given the metadata of the task
-        '''
+        """
         """
         Args:
           metadata: an DecathlonMetadata object. Its definition can be found in
@@ -87,9 +89,8 @@ class Model:
         # getting an object for the PyTorch Model class for Model Class
         # use CUDA if available
         # TODO
-        depth = 10 # TODO increase to 40 
-        spacetime_dims = np.count_nonzero(
-            np.array(self.input_shape)[[0, 2, 3]] != 1)
+        depth = 40  # TODO increase to 40
+        spacetime_dims = np.count_nonzero(np.array(self.input_shape)[[0, 2, 3]] != 1)
         logger.info(f"Using WRN of dimension {spacetime_dims}")
         if spacetime_dims == 1:
             self.model = WideResNet1d(
@@ -98,7 +99,8 @@ class Model:
                 input_shape=self.input_shape,
                 widen_factor=4,
                 dropRate=0.0,
-                in_channels=channel, )
+                in_channels=channel,
+            )
         elif spacetime_dims == 2:
             self.model = WideResNet2d(
                 depth=depth,
@@ -106,7 +108,8 @@ class Model:
                 input_shape=self.input_shape,
                 widen_factor=4,
                 dropRate=0.0,
-                in_channels=channel, )
+                in_channels=channel,
+            )
         elif spacetime_dims == 3:
             self.model = WideResNet3d(
                 depth=depth,
@@ -114,15 +117,17 @@ class Model:
                 input_shape=self.input_shape,
                 widen_factor=4,
                 dropRate=0.0,
-                in_channels=channel, )
-        elif spacetime_dims == 0: # Special case where we have channels only
+                in_channels=channel,
+            )
+        elif spacetime_dims == 0:  # Special case where we have channels only
             self.model = WideResNet1d(
                 depth=depth,
                 num_classes=self.output_dim,
                 input_shape=self.input_shape,
                 widen_factor=4,
                 dropRate=0.0,
-                in_channels=1, )
+                in_channels=1,
+            )
         else:
             raise NotImplementedError
 
@@ -158,8 +163,8 @@ class Model:
         self.num_epochs_we_want_to_train = 100
 
         # no of examples at each step/batch
-        self.train_batch_size = 30
-        self.test_batch_size = 30
+        self.train_batch_size = 128
+        self.test_batch_size = 128
 
     def get_dataloader(self, dataset, batch_size, split):
         """Get the PyTorch dataloader. Do not modify this method.
@@ -187,12 +192,14 @@ class Model:
             )
         return dataloader
 
-    def train(self, dataset, val_dataset=None, val_metadata=None, remaining_time_budget=None):
-        '''
+    def train(
+        self, dataset, val_dataset=None, val_metadata=None, remaining_time_budget=None
+    ):
+        """
         CHANGE ME
         The training procedure of your method given training data, validation data (which is only directly provided in certain tasks, otherwise you are free to create your own validation strategies), and remaining time budget for training.
-        '''
-        
+        """
+
         """Train this algorithm on the Pytorch dataset.
 
         This method will be called REPEATEDLY during the whole training/predicting
@@ -261,10 +268,15 @@ class Model:
             train_start = time.time()
 
             # Training loop
+            # TODO remove
+            steps_to_train = len(self.trainloader)
+            logger.info(f"steps_to_train {steps_to_train}")
+            # TODO remove
             self.trainloop(self.criterion, self.optimizer, steps=steps_to_train)
             train_end = time.time()
 
             # Update for time budget managing
+            # TODO
             train_duration = train_end - train_start
             self.total_train_time += train_duration
             self.cumulated_num_steps += steps_to_train
@@ -363,7 +375,7 @@ class Model:
         """
         self.model.train()
         data_iterator = iter(self.trainloader)
-        for _ in range(steps):
+        for _ in tqdm(range(steps)):
             try:
                 images, labels = next(data_iterator)
             except StopIteration:

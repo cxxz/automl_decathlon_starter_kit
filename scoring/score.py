@@ -432,6 +432,7 @@ class Evaluator(object):
 
 # =============================== MAIN ========================================
 
+
 def scoring_main(args, task_name):
     dataset_dir = args.dataset_dir
     prediction_dir = args.prediction_dir
@@ -475,6 +476,7 @@ def scoring_main(args, task_name):
     logger.info("[Scoring terminated]")
     return evaluator.score, evaluator.ingestion_duration
 
+
 if __name__ == "__main__":
     logger.info(
         "=" * 5 + " Start scoring program. " + "Version: {} ".format(VERSION) + "=" * 5
@@ -512,12 +514,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger.debug("Parsed args are: " + str(args))
     logger.debug("-" * 50)
-    
 
     base_prediction_dir = args.prediction_dir
-    all_tasks = ['navierstokes', 'spherical', 'ninapro', 'cosmic', 'ecg', 'deepsea', 'nottingham', 'crypto', 'ember', 'fsd50k']
+    all_tasks = [
+        "navierstokes",
+        "spherical",
+        "ninapro",
+        "cosmic",
+        "ecg",
+        "deepsea",
+        "nottingham",
+        "crypto",
+        "ember",
+        "fsd50k",
+    ]
     tasks = [x for x in os.listdir(base_prediction_dir) if x in all_tasks]
-    logger.info("Found prediction directories for tasks: {}".format(' '.join(tasks)))
+    logger.info("Found prediction directories for tasks: {}".format(" ".join(tasks)))
 
     for task in tasks:
         logger.info("Start scoring for task: {}".format(task))
@@ -536,11 +548,9 @@ if __name__ == "__main__":
             )
         )
         logger.info("Ended scoring for task: {}".format(task))
-    aupp = 0.0 # TODO add some form of real AUPP here
+    aupp = 0.0  # TODO add some form of real AUPP here
     with open(score_filename, "a") as f:
         f.write(f"aupp: " + str(aupp) + "\n")
     logger.debug(
-        "Wrote to score_filename={} with AUPP score={}".format(
-            score_filename, aupp
-        )
+        "Wrote to score_filename={} with AUPP score={}".format(score_filename, aupp)
     )

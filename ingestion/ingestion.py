@@ -144,15 +144,32 @@ logger = get_logger(verbosity_level)
 
 
 def get_time_budget(dataset_name):
-    ### TOFIX by Sam or Nick
-    if dataset_name == "ninapro":
-        return 3 * 60
-    elif dataset_name == "deepsea":
-        return 30 * 60
+    # TODO
+    minutes = 60
+    hours = 60 * minutes
+    factor = 1
+    if dataset_name == "navierstokes":
+        return 5 * hours * factor
+    elif dataset_name == "spherical":
+        return 7 * hours * factor
+    elif dataset_name == "ninapro":
+        return 3 * hours * factor
+    elif dataset_name == "fsd50k":
+        return 20 * hours * factor
     elif dataset_name == "cosmic":
-        return 2 * 60 * 60
+        return 6 * hours * factor
+    elif dataset_name == "ecg":
+        return 14 * hours * factor
+    elif dataset_name == "deepsea":
+        return 6 * hours * factor
+    elif dataset_name == "nottingham":
+        return 3 * hours * factor
+    elif dataset_name == "crypto":
+        return 3 * hours * factor
+    elif dataset_name == "ember":
+        return 47 * hours * factor
     else:
-        return 5 * 60
+        return 3 * hours * factor
 
 
 def _HERE(*args):
@@ -253,6 +270,7 @@ class Timer:
 
 # =========================== BEGIN PROGRAM ================================
 
+
 def ingestion_main(ingestion_success, args, dataset_name):
     logger.debug("Parsed args are: " + str(args))
     logger.debug("-" * 50)
@@ -317,7 +335,7 @@ def ingestion_main(ingestion_success, args, dataset_name):
 
     # 20 min for participants to initializing and install other packages
     try:
-        init_time_budget = 20 * 60 # time budget for initilization.
+        init_time_budget = 20 * 60  # time budget for initilization.
         timer = Timer()
         timer.set(init_time_budget)
         with timer.time_limit("Initialization"):
@@ -467,6 +485,7 @@ def ingestion_main(ingestion_success, args, dataset_name):
 
     logger.info("[Ingestion terminated]")
 
+
 if __name__ == "__main__":
 
     #### Check whether everything went well
@@ -517,18 +536,28 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    task_yaml_file = os.path.join(args.code_dir, 'tasks_to_run.yaml')
+    task_yaml_file = os.path.join(args.code_dir, "tasks_to_run.yaml")
 
     if os.path.exists(task_yaml_file):
-        with open(task_yaml_file, 'r') as f:
+        with open(task_yaml_file, "r") as f:
             content = yaml.load(f, Loader=yaml.FullLoader)
-        tasks = content['tasks']
-        logger.info("Found user-specified task list: {}".format(' '.join(tasks)))
+        tasks = content["tasks"]
+        logger.info("Found user-specified task list: {}".format(" ".join(tasks)))
     else:
-        tasks = ['navierstokes', 'spherical', 'ninapro', 'cosmic', 'ecg',
-            'deepsea', 'nottingham', 'crypto', 'ember', 'fsd50k']
-        logger.info("Default task list: {}".format(' '.join(tasks)))
-    
+        tasks = [
+            "navierstokes",
+            "spherical",
+            "ninapro",
+            "cosmic",
+            "ecg",
+            "deepsea",
+            "nottingham",
+            "crypto",
+            "ember",
+            "fsd50k",
+        ]
+        logger.info("Default task list: {}".format(" ".join(tasks)))
+
     base_output_dir = args.output_dir
     for task in tasks:
         logger.info("Starting ingestion for {}".format(task))

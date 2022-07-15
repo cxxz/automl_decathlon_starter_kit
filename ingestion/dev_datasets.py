@@ -77,13 +77,12 @@ class DecathlonMetadata(object):
     def get_task_type(self):
         return self.metadata_["task_type"]
 
-    def get_final_metric(self):
-        return self.metadata_["final_metric"]
 
 """
 General Dataset class; wrapper around Datasets for each of the tasks
 Following this are all the task-specific Datasets
 Loaded x values are in a standard dimension format: (N, Time, Channel, H, W)
+
 If we decide to anonymize the dev tasks, we'll need a quick change of the dataset names/options to be nondescript
 """
 
@@ -145,8 +144,7 @@ class DecathlonDataset(Dataset):
 
 # function to one-hot-encode a vector of raw labels
 def OHE(raw_labels, n):
-    raw_labels_int = raw_labels.astype("int")
-    ohe_labels = np.eye(n)[raw_labels_int]
+    ohe_labels = np.eye(n)[raw_labels]
     return ohe_labels
 
 

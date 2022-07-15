@@ -87,7 +87,7 @@ def get_basename(path):
     return path.split(os.sep)[-1]
 
 
-def run_baseline(dataset_dir, dataset_name, code_dir, time_budget=1200):
+def run_baseline(dataset_dir, code_dir, time_budget=1200):
     logging.info("#" * 50)
     logging.info("Begin running local test using")
     logging.info("code_dir = {}".format(get_basename(code_dir)))
@@ -132,12 +132,6 @@ if __name__ == "__main__":
         help="Directory storing the dataset (containing " + "e.g. ninapro/)",
     )
     parser.add_argument(
-        "--dataset_name",
-        type=str,
-        default=default_dataset_name,
-        help="Name of the dataset in dataset_dir (e.g. ninapro)",
-    )
-    parser.add_argument(
         "--code_dir",
         type=str,
         help="Directory containing a `model.py` file. Specify this "
@@ -153,8 +147,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     dataset_dir = args.dataset_dir
-    dataset_name = args.dataset_name
     code_dir = args.code_dir
     time_budget = args.time_budget
 
-    run_baseline(dataset_dir, dataset_name, code_dir, time_budget)
+    run_baseline(dataset_dir, code_dir, time_budget)
