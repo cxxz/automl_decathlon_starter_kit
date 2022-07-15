@@ -8,18 +8,6 @@ DESCRIPTION = """This is the scoring program for the AutoML Decathlon. It takes 
 
 # Scoring program for the AutoML Decathlon.
 
-# ALL INFORMATION, SOFTWARE, DOCUMENTATION, AND DATA ARE PROVIDED "AS-IS".
-# ORGANIZERS OR CODE AUTHORS DISCLAIM
-# ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY PARTICULAR PURPOSE, AND THE
-# WARRANTY OF NON-INFRINGEMENT OF ANY THIRD PARTY'S INTELLECTUAL PROPERTY RIGHTS.
-# IN NO EVENT SHALL ORGANIZERS BE LIABLE FOR ANY SPECIAL,
-# INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING OUT OF OR IN
-# CONNECTION WITH THE USE OR PERFORMANCE OF SOFTWARE, DOCUMENTS, MATERIALS,
-# PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
-################################################################################
-
-
 ################################################################################
 # User defined constants
 ################################################################################
@@ -151,7 +139,7 @@ def is_multiclass(solution):
     return all(is_one_hot_vector(solution, axis=1))
 
 
-def get_solution(dataset_dir, task_name):  ### FIXME Sam
+def get_solution(dataset_dir, task_name): 
     """
     CHANGES:
     dataset_dir: the directory where all the dev data is held; by the default structure, this would be something like '/{home}/automl_decathlon_starting_kit/dev/processed_data/'
@@ -351,7 +339,7 @@ class Evaluator(object):
         self.relative_timestamps = []
 
         # Resolve info from directories
-        self.solution = self.get_solution()  ### Sam FIXME
+        self.solution = self.get_solution() 
         # Check if the task is multilabel (i.e. with one hot label)
 
         self.fetch_ingestion_info()
@@ -547,7 +535,7 @@ if __name__ == "__main__":
             score, duration = (
                 999999,
                 999999,
-            )  # these are just placeholders (higher is worse). May want to change to something else?
+            )  # these are just placeholders (higher is worse).
 
         # Write results to file
         score_dir = args.score_dir
@@ -562,7 +550,7 @@ if __name__ == "__main__":
         )
         logger.info("Ended scoring for task: {}".format(task))
 
-    aupp = 0.0  # TODO add some form of real AUPP here
+    aupp = 0.0  # True aupp calculation is done offline in the notebook
     with open(score_filename, "a") as f:
         f.write(f"aupp: " + str(aupp) + "\n")
     logger.debug(
