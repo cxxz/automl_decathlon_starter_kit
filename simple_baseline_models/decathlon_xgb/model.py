@@ -1,11 +1,9 @@
 """An example of code submission for the AutoML Decathlon challenge.
+
 It implements 3 compulsory methods ('__init__', 'train' and 'test') and
 an attribute 'done_training' for indicating if the model will not proceed more
 training due to convergence or limited time budget.
-Your changes should be to the TorchModel class, and '__init__' and 'train' in the 'Model' class, which will determine:
-- How your method/model are initialized given the task metadata
-- How your method/model will utilize the provided training data, validation data, and remaining time budget
-Feel free to add new variables/functions to augment your method.
+
 To create a valid submission, zip model.py and metadata together with other necessary files
 such as tasks_to_run.yaml, Python modules/packages, pre-trained weights, etc. The final zip file
 should not exceed 300MB.
