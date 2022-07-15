@@ -89,7 +89,7 @@ class Model:
         # getting an object for the PyTorch Model class for Model Class
         # use CUDA if available
         # TODO
-        depth = 40  # TODO increase to 40
+        depth = 16  # TODO increase to 40
         spacetime_dims = np.count_nonzero(np.array(self.input_shape)[[0, 2, 3]] != 1)
         logger.info(f"Using WRN of dimension {spacetime_dims}")
         if spacetime_dims == 1:
@@ -269,8 +269,8 @@ class Model:
 
             # Training loop
             # TODO remove
-            # steps_to_train = len(self.trainloader)
-            # logger.info(f"steps_to_train {steps_to_train}")
+            steps_to_train = len(self.trainloader)
+            logger.info(f"steps_to_train {steps_to_train}")
             # TODO remove
             self.trainloop(self.criterion, self.optimizer, steps=steps_to_train)
             train_end = time.time()

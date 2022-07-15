@@ -145,31 +145,29 @@ logger = get_logger(verbosity_level)
 
 def get_time_budget(dataset_name):
     # TODO
-    minutes = 60
-    hours = 60 * minutes
-    factor = 1
+    hours = 60 * 60
     if dataset_name == "navierstokes":
-        return 5 * hours * factor
+        return 5 * hours
     elif dataset_name == "spherical":
-        return 7 * hours * factor
+        return 5 * hours
     elif dataset_name == "ninapro":
-        return 3 * hours * factor
+        return 3 * hours
     elif dataset_name == "fsd50k":
-        return 20 * hours * factor
+        return 18 * hours
     elif dataset_name == "cosmic":
-        return 6 * hours * factor
+        return 5 * hours
     elif dataset_name == "ecg":
-        return 14 * hours * factor
+        return 9 * hours
     elif dataset_name == "deepsea":
-        return 6 * hours * factor
+        return 4 * hours
     elif dataset_name == "nottingham":
-        return 3 * hours * factor
+        return 2 * hours
     elif dataset_name == "crypto":
-        return 3 * hours * factor
+        return 2 * hours
     elif dataset_name == "ember":
-        return 47 * hours * factor
+        return 16 * hours
     else:
-        return 3 * hours * factor
+        return 3 * hours
 
 
 def _HERE(*args):
@@ -424,7 +422,8 @@ def ingestion_main(ingestion_success, args, dataset_name):
                 break
             else:  # Check if the prediction has good shape
                 prediction_shape = tuple(Y_pred.shape)
-                if prediction_shape != correct_prediction_shape:
+                # TODO fix this
+                if prediction_shape[1:] != correct_prediction_shape[1:]:
                     raise BadPredictionShapeError(
                         "Bad prediction shape! Expected {} but got {}.".format(
                             correct_prediction_shape, prediction_shape

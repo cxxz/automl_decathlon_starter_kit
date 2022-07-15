@@ -105,7 +105,7 @@ class DecathlonDataset(Dataset):
         elif task == "fsd50k":
             self.dataset = load_fsd50k_dataset(root=root, split=split)
             self.collate_fn = _collate_fn if split == "train" else _collate_fn_eval
-            self.required_batch_size = 64
+            self.required_batch_size = 256
         elif task == "cosmic":
             self.dataset = PairedDatasetImagePath(root=root, split=split)
         elif task == "ecg":

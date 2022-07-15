@@ -189,7 +189,7 @@ def get_solution(dataset_dir, task_name):  ### FIXME Sam
         )
         if task_name == "fsd50k":
             dataloader = DataLoader(
-                dataset, batch_size=64, shuffle=False, collate_fn=_collate_fn_eval
+                dataset, batch_size=256, shuffle=False, collate_fn=_collate_fn_eval
             )
         else:
             dataloader = DataLoader(dataset, batch_size=256, shuffle=False)
