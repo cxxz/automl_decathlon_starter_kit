@@ -365,73 +365,52 @@ def ingestion_main(ingestion_success, args, dataset_name):
                 + "`{}`. Please implement it in model.py."
             )
 
-    # Check if model.py uses new done_training API instead of marking
-    # stopping by returning None
-    use_done_training_api = hasattr(M, "done_training")
-    if not use_done_training_api:
-        logger.warning(
-            "Your model object doesn't have an attribute "
-            + "`done_training`. But this is necessary for ingestion "
-            + "program to know whether the model has done training "
-            + "and to decide whether to proceed more training. "
-            + "Please add this attribute to your model."
-        )
-
     # Keeping track of how many predictions are made
     prediction_order_number = 0
 
     # Start the CORE PART: train/predict process
-    last_pred = None
-    while not (use_done_training_api and M.done_training):
-        remaining_time_budget = start + time_budget - time.time()
-        # Train the model
-        logger.info("Begin training the model...")
-        M.train(
-            D_train,
-            D_val,
-            val_metadata,
-            remaining_time_budget=remaining_time_budget,
-        )
-        logger.info("Finished training the model.")
-        remaining_time_budget = start + time_budget - time.time()
-        # Make predictions using the trained model
-        logger.info("Begin testing the model by making predictions " + "on test set...")
-        Y_pred = M.test(D_test, remaining_time_budget=remaining_time_budget)
-        logger.info("Finished making predictions.")
-        if Y_pred is None:  # Stop train/predict process if Y_pred is None
-            Y_pred = last_pred
-            logger.info(
-                "The method model.test returned `None`. "
-                + "Stop train/predict process."
-            )
-            break
-        else:  # Check if the prediction has good shape
-            prediction_shape = tuple(Y_pred.shape)
-            if prediction_shape[1:] != correct_prediction_shape[1:]:
-                raise BadPredictionShapeError(
-                    "Bad prediction shape! Expected {} but got {}.".format(
-                        correct_prediction_shape, prediction_shape
-                    )
-                )
-            last_pred = Y_pred
-        # Write timestamp to 'start.txt'
-        write_timestamp(
-            output_dir, predict_idx=prediction_order_number, timestamp=time.time()
-        )
-        # Prediction files: ninapro.predict_0, ninapro.predict_1, ...
-        filename_test = basename + ".predict_" + str(prediction_order_number)
-        # Write predictions to output_dir
-        data_io.write(os.path.join(output_dir, filename_test), Y_pred)
-        prediction_order_number += 1
-        logger.info(
-            "[+] {0:d} predictions made, time spent so far {1:.2f} sec".format(
-                prediction_order_number, time.time() - start
+    remaining_time_budget = start + time_budget - time.time()
+
+    # Train the model
+    logger.info("Begin training the model...")
+    M.train(
+        D_train,
+        D_val,
+        val_metadata,
+        remaining_time_budget=remaining_time_budget,
+    )
+    logger.info("Finished training the model.")
+    remaining_time_budget = start + time_budget - time.time()
+
+    # Make predictions using the trained model
+    logger.info("Begin testing the model by making predictions " + "on test set...")
+    Y_pred = M.test(D_test, remaining_time_budget=remaining_time_budget)
+    logger.info("Finished making predictions.")
+
+    # Check if the prediction has good shape
+    prediction_shape = tuple(Y_pred.shape)
+    if prediction_shape[1:] != correct_prediction_shape[1:]:
+        raise BadPredictionShapeError(
+            "Bad prediction shape! Expected {} but got {}.".format(
+                correct_prediction_shape, prediction_shape
             )
         )
-        remaining_time_budget = start + time_budget - time.time()
-        logger.info("[+] Time left {0:.2f} sec".format(remaining_time_budget))
-        if remaining_time_budget <= 0:
-            break
+    # Write timestamp to 'start.txt'
+    write_timestamp(
+        output_dir, predict_idx=prediction_order_number, timestamp=time.time()
+    )
+    # Prediction files: ninapro.predict_0, ninapro.predict_1, ...
+    filename_test = basename + ".predict_" + str(prediction_order_number)
+    # Write predictions to output_dir
+    data_io.write(os.path.join(output_dir, filename_test), Y_pred)
+    prediction_order_number += 1
+    logger.info(
+        "[+] {0:d} predictions made, time spent so far {1:.2f} sec".format(
+            prediction_order_number, time.time() - start
+        )
+    )
+    remaining_time_budget = start + time_budget - time.time()
+    logger.info("[+] Time left {0:.2f} sec".format(remaining_time_budget))
     """
     except Exception as e:
         ingestion_success = False

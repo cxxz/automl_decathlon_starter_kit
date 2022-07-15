@@ -56,7 +56,7 @@ def get_dev_dataloaders(
 
     # creating loaders
     if task == "fsd50k":
-        fsd50k_batch_size = 256
+        fsd50k_batch_size = 64
         # fsd50k also needs custom collate functions
         train_loader = DataLoader(
             train_set,

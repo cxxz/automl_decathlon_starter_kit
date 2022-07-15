@@ -189,7 +189,7 @@ def get_solution(dataset_dir, task_name):  ### FIXME Sam
         )
         if task_name == "fsd50k":
             dataloader = DataLoader(
-                dataset, batch_size=256, shuffle=False, collate_fn=_collate_fn_eval
+                dataset, batch_size=64, shuffle=False, collate_fn=_collate_fn_eval
             )
         else:
             dataloader = DataLoader(dataset, batch_size=256, shuffle=False)
@@ -529,19 +529,26 @@ if __name__ == "__main__":
         "fsd50k",
     ]
     tasks = [x for x in os.listdir(base_prediction_dir) if x in all_tasks]
-    tasks_not_completed = set(all_tasks) - set(tasks) 
+    tasks_not_completed = set(all_tasks) - set(tasks)
     logger.info("Found prediction directories for tasks: {}".format(" ".join(tasks)))
 
     for task in all_tasks:
         if task in set(tasks):
             logger.info("Start scoring for task: {}".format(task))
             args.prediction_dir = os.path.join(base_prediction_dir, task)
-            score, duration = scoring_main(args, task)          
+            score, duration = scoring_main(args, task)
         else:
-            logger.info("Task was not completed (not included in run or timed out): {}".format(task))
+            logger.info(
+                "Task was not completed (not included in run or timed out): {}".format(
+                    task
+                )
+            )
             mkdir(args.score_dir)
-            score, duration = 999999, 999999 # these are just placeholders (higher is worse). May want to change to something else?
-            
+            score, duration = (
+                999999,
+                999999,
+            )  # these are just placeholders (higher is worse). May want to change to something else?
+
         # Write results to file
         score_dir = args.score_dir
         score_filename = os.path.join(score_dir, "scores.txt")
@@ -554,7 +561,7 @@ if __name__ == "__main__":
             )
         )
         logger.info("Ended scoring for task: {}".format(task))
-        
+
     aupp = 0.0  # TODO add some form of real AUPP here
     with open(score_filename, "a") as f:
         f.write(f"aupp: " + str(aupp) + "\n")
