@@ -14,7 +14,7 @@ DESCRIPTION = """This is the scoring program for the AutoML Decathlon. It takes 
 
 # Verbosity level of logging.
 # Can be: NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
-verbosity_level = "DEBUG"
+verbosity_level = "INFO"
 
 from libscores import read_array, mkdir, ls, mvmean, tiedrank, _HERE, get_logger
 from os.path import join
@@ -139,7 +139,7 @@ def is_multiclass(solution):
     return all(is_one_hot_vector(solution, axis=1))
 
 
-def get_solution(dataset_dir, task_name): 
+def get_solution(dataset_dir, task_name):
     """
     CHANGES:
     dataset_dir: the directory where all the dev data is held; by the default structure, this would be something like '/{home}/automl_decathlon_starting_kit/dev/processed_data/'
@@ -339,7 +339,7 @@ class Evaluator(object):
         self.relative_timestamps = []
 
         # Resolve info from directories
-        self.solution = self.get_solution() 
+        self.solution = self.get_solution()
         # Check if the task is multilabel (i.e. with one hot label)
 
         self.fetch_ingestion_info()

@@ -63,7 +63,7 @@ code (ingestion.py) and the README file of the starting kit.
 # Verbosity level of logging:
 ##############
 # Can be: NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
-verbosity_level = "DEBUG"
+verbosity_level = "INFO"
 
 # Some common useful packages
 from contextlib import contextmanager
@@ -293,7 +293,7 @@ def ingestion_main(ingestion_success, args, dataset_name):
     test_metadata = extract_metadata(D_test)
     num_examples_test = test_metadata.size()  # scalar int
     output_dim = np.prod(test_metadata.get_output_shape())  # tuple
-    correct_prediction_shape = (num_examples_test, output_dim) 
+    correct_prediction_shape = (num_examples_test, output_dim)
 
     ## if fsd50k, get corresponding validation metadata
     val_metadata = extract_metadata(D_val) if D_val else None
