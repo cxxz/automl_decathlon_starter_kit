@@ -160,7 +160,7 @@ class Model:
 
         # PYTORCH
         # Critical number for early stopping
-        self.num_epochs_we_want_to_train = 200
+        self.num_epochs_we_want_to_train = 1
 
         # no of examples at each step/batch
         self.train_batch_size = 128
