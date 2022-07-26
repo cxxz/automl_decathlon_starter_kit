@@ -27,7 +27,7 @@ from wrn3d import WideResNet3d
 np.random.seed(42)
 torch.manual_seed(1)
 
-# PyTorch Model class
+# Model class
 class WideResNet(nn.Module):
     """
     Defines a module that will be created in '__init__' of the 'Model' class below, and will be used for training and predictions.
@@ -125,7 +125,6 @@ class Model:
         else:
             raise NotImplementedError
 
-        print("\nPyModel Defined\n")
         print(self.model)
         self.model.to(self.device)
 
