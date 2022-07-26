@@ -1,8 +1,6 @@
 """An example of code submission for the AutoML Decathlon challenge.
 
-It implements 3 compulsory methods ('__init__', 'train' and 'test') and
-an attribute 'done_training' for indicating if the model will not proceed more
-training due to convergence or limited time budget.
+It implements 3 compulsory methods ('__init__', 'train' and 'test'). 
 
 To create a valid submission, zip model.py and metadata together with other necessary files
 such as tasks_to_run.yaml, Python modules/packages, pre-trained weights, etc. The final zip file
@@ -26,13 +24,14 @@ np.random.seed(42)
 torch.manual_seed(1)
 
 # PyTorch Model class
-class TorchModel(nn.Module):
-    '''
-    Defines a module that will be created in '__init__' of the 'Model' class below, and will be used for training and predictions. 
-    '''
+class LinearModel(nn.Module):
+    """
+    Defines a module that will be created in '__init__' of the 'Model' class below, and will be used for training and predictions.
+    """
+
     def __init__(self, input_shape, output_dim):
         """a simple linear model"""
-        super(TorchModel, self).__init__()
+        super(LinearModel, self).__init__()
 
         fc_size = np.prod(input_shape)
         print("input_shape, fc_size", input_shape, fc_size)
@@ -46,30 +45,25 @@ class TorchModel(nn.Module):
 
 class Model:
     def __init__(self, metadata):
-        '''
+        """
         The initalization procedure for your method given the metadata of the task
-        '''
+        """
         """
         Args:
           metadata: an DecathlonMetadata object. Its definition can be found in
               ingestion/dev_datasets.py
         """
-        # Attribute necessary for ingestion program to stop evaluation process
-        self.done_training = False
         self.metadata_ = metadata
 
         # Getting details of the data from meta data
         # Product of output dimensions in case of multi-dimensional outputs...
         self.output_dim = math.prod(self.metadata_.get_output_shape())
 
-        self.num_examples_train = self.metadata_.size()
-
         row_count, col_count = self.metadata_.get_tensor_shape()[2:4]
         channel = self.metadata_.get_tensor_shape()[1]
         sequence_size = self.metadata_.get_tensor_shape()[0]
 
         self.num_train = self.metadata_.size()
-        self.num_test = self.metadata_.get_output_shape()
 
         # Getting the device available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -82,10 +76,9 @@ class Model:
 
         # getting an object for the PyTorch Model class for Model Class
         # use CUDA if available
-        self.pytorchmodel = TorchModel(self.input_shape, self.output_dim)
-        print("\nPyModel Defined\n")
-        print(self.pytorchmodel)
-        self.pytorchmodel.to(self.device)
+        self.model = LinearModel(self.input_shape, self.output_dim)
+        print(self.model)
+        self.model.to(self.device)
 
         # PyTorch Optimizer and Criterion
         if self.metadata_.get_task_type() == "continuous":
@@ -97,7 +90,7 @@ class Model:
         else:
             raise NotImplementedError
 
-        self.optimizer = torch.optim.Adam(self.pytorchmodel.parameters(), lr=1e-2)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-2)
 
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -135,11 +128,13 @@ class Model:
             )
         return dataloader
 
-    def train(self, dataset, val_dataset=None, val_metadata=None, remaining_time_budget=None):
-        '''
+    def train(
+        self, dataset, val_dataset=None, val_metadata=None, remaining_time_budget=None
+    ):
+        """
         The training procedure of your method given training data, validation data (which is only directly provided in certain tasks, otherwise you are free to create your own validation strategies), and remaining time budget for training.
-        '''
-        
+        """
+
         """Train this algorithm on the Pytorch dataset.
 
         ****************************************************************************
@@ -160,10 +155,7 @@ class Model:
               should be tuned to fit within this budget.
         """
 
-
-        logger.info(
-            "Begin training..."
-        )
+        logger.info("Begin training...")
 
         # If PyTorch dataloader for training set doen't already exists, get the train dataloader
         if not hasattr(self, "trainloader"):
@@ -176,7 +168,7 @@ class Model:
         train_start = time.time()
 
         # Training loop
-        epochs_to_train = 200 # may adjust as necessary
+        epochs_to_train = 200  # may adjust as necessary
         self.trainloop(self.criterion, self.optimizer, epochs=epochs_to_train)
         train_end = time.time()
 
@@ -188,10 +180,7 @@ class Model:
             "{} epochs trained. {:.2f} sec used. ".format(
                 epochs_to_train, train_duration
             )
-            + "Total time used for training: {:.2f} sec. ".format(
-                self.total_train_time
-            )
-
+            + "Total time used for training: {:.2f} sec. ".format(self.total_train_time)
         )
 
     def test(self, dataset, remaining_time_budget=None):
@@ -205,7 +194,6 @@ class Model:
               set and `output_dim` is the number of labels to be predicted. The
               values should be binary or in the interval [0,1].
         """
-
 
         test_begin = time.time()
 
@@ -225,12 +213,8 @@ class Model:
         # Update some variables for time management
         test_duration = test_end - test_begin
 
-
         logger.info(
-            "[+] Successfully made predictions. {:.2f} sec used. ".format(
-                test_duration
-            )
-
+            "[+] Successfully made predictions. {:.2f} sec used. ".format(test_duration)
         )
         return predictions
 
@@ -243,24 +227,24 @@ class Model:
         Args:
           criterion: PyTorch Loss function
           Optimizer: PyTorch optimizer for training
-          steps: No of steps to train the model
+          epochs: No of epochs to train the model
 
         Return:
           None, updates the model parameters
         """
-        self.pytorchmodel.train()
-        data_iterator = iter(self.trainloader)
+        self.model.train()
         for _ in range(epochs):
             for images, labels in self.trainloader:
                 images = images.float().to(self.device)
                 labels = labels.float().to(self.device)
                 optimizer.zero_grad()
 
-                logits = self.pytorchmodel(images)
-
+                logits = self.model(images)
                 loss = criterion(logits, labels.reshape(labels.shape[0], -1))
+
                 if hasattr(self, "scheduler"):
                     self.scheduler.step(loss)
+
                 loss.backward()
                 optimizer.step()
 
@@ -274,13 +258,13 @@ class Model:
         """
         preds = []
         with torch.no_grad():
-            self.pytorchmodel.eval()
+            self.model.eval()
             for images, _ in iter(dataloader):
                 if torch.cuda.is_available():
                     images = images.float().cuda()
                 else:
                     images = images.float()
-                logits = self.pytorchmodel(images)
+                logits = self.model(images)
 
                 # Choose correct prediction type
                 if self.metadata_.get_task_type() == "continuous":
@@ -296,7 +280,6 @@ class Model:
 
         preds = np.vstack(preds)
         return preds
-
 
 
 def get_logger(verbosity_level):
