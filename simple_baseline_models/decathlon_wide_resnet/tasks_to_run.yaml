@@ -1,7 +1,7 @@
 tasks: 
     #- navierstokes
-    #- spherical
-    - ninapro
+    - spherical
+    #- ninapro
     #- fsd50k
     #- cosmic
     #- ecg
