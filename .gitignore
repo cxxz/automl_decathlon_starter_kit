@@ -172,3 +172,4 @@ cython_debug/
 dev_public/
 *temp_prediction_file*
 .vscode
+**/.DS_Store
