@@ -24,7 +24,7 @@ docker pull automldec/decathlon
 docker run --gpus all --rm -it -v "$(pwd):/app/codalab" -v "<path_public_data>:/app/codalab/dev_public" -w "/app/codalab" -p 8888:8888 automldec/decathlon:latest
 ```
 The option `-p 8888:8888` is useful for running a Jupyter notebook tutorial
-inside Docker. If the port 8888 is occupied, you can use other ports, e.g. 8899, and use instead the option `-p 8899:8888`.
+inside Docker. If the port 8888 is occupied, you can use other ports, e.g. 8899, and use instead the option `-p 8899:8888`. Note that `<path_public_data>` should be your absolute path to `dev_public`. 
 
 You will then be able to run the `ingestion program` (to produce predictions)
 and the `scoring program` (to evaluate your predictions) on public data
