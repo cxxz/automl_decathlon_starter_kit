@@ -426,7 +426,7 @@ if __name__ == "__main__":
     default_ingestion_program_dir = join(root_dir, "ingestion")
     default_code_dir = join(root_dir, "sample_code_submission")
 
-    default_time_budget = 1200
+    default_time_budget = 72_000
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--dataset_dir",

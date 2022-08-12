@@ -121,7 +121,7 @@ if __name__ == "__main__":
     default_starting_kit_dir = _HERE()
     default_dataset_dir = os.path.join(default_starting_kit_dir, "dev")
     default_code_dir = os.path.join(default_starting_kit_dir, "sample_code_submission")
-    default_time_budget = 1200
+    default_time_budget = 72_000
     default_dataset_name = "ninapro"
 
     parser = argparse.ArgumentParser()
