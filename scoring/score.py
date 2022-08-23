@@ -70,7 +70,9 @@ def decathlon_scorer(solution, prediction, dataset_name):
         score = decathlon_metrics.zero_one_error(solution, prediction)
     elif dataset_name == "cosmic":
         # Report false negative rate
-        score = decathlon_metrics.false_negative_rate(solution, prediction)
+        score = decathlon_metrics.inv_auroc_score(
+            solution.reshape(-1), prediction.reshape(-1)
+        )
     elif dataset_name == "deepsea":
         # Report 1 - AUROC
         score = decathlon_metrics.inv_auroc_score(solution, prediction)
