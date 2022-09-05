@@ -2,7 +2,7 @@ AutoML Decathlon starter kit
 ======================================
 
 ## Download public datasets
-The 10 developoment datasets were hosted on Google cloud storage. First, you need to install the
+The 10 development datasets were hosted on Google cloud storage. First, you need to install the
 [gcloud CLI](https://cloud.google.com/sdk/docs/install). Then run the following command line to download the datasets,
 is:
 ```bash
