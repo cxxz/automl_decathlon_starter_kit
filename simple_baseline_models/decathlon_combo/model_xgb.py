@@ -120,7 +120,7 @@ class Model:
 
         # Getting details of the data from meta data
         # Product of output dimensions in case of multi-dimensional outputs...
-        self.output_dim = math.prod(self.metadata_.get_output_shape())
+        self.output_dim = np.prod(self.metadata_.get_output_shape())
 
         self.num_examples_train = self.metadata_.size()
 
