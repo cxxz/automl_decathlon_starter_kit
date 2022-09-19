@@ -57,7 +57,7 @@ class Model:
 
         # Getting details of the data from meta data
         # Product of output dimensions in case of multi-dimensional outputs...
-        self.output_dim = math.prod(self.metadata_.get_output_shape())
+        self.output_dim = np.prod(self.metadata_.get_output_shape())
 
         row_count, col_count = self.metadata_.get_tensor_shape()[2:4]
         channel = self.metadata_.get_tensor_shape()[1]
