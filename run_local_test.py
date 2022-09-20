@@ -140,8 +140,7 @@ if __name__ == "__main__":
         "--time_budget",
         type=float,
         default=default_time_budget,
-        help="Directory storing the ingestion program "
-        + "`ingestion.py` and other necessary packages.",
+        help="Time budget (s) alloted per task"
     )
 
     args = parser.parse_args()
