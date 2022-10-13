@@ -11,6 +11,7 @@ should not exceed 300MB.
 
 import datetime
 import logging
+from typing import Tuple
 import numpy as np
 import os
 import sys
@@ -22,7 +23,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from sklearn.model_selection import train_test_split
-
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    RandomForestRegressor
+)
 import xgboost as xgb
 
 # seeding randomness for reproducibility
@@ -52,21 +56,36 @@ def merge_batches(dataloader: DataLoader, is_single_label:bool):
     y_matrix = np.concatenate(y_batches, axis=0)
     
     return x_matrix, y_matrix
-    
-    
-def get_xgb_model(task_type:str, output_size: int, random_state=None):
+
+
+def get_early_stopping_rounds(num_rows_train, min_patience=20, max_patience=300, min_rows=10000):
+
+    modifier = 1 if num_rows_train <= min_rows else min_rows / num_rows_train
+    simple_early_stopping_rounds = max(
+        round(modifier * max_patience),
+        min_patience,
+    )
+    return simple_early_stopping_rounds
+
+
+def get_xgb_model(task_type:str, output_size: int, num_rows: int, random_state=None):
     # Adapted from NB360 xgboost example
-    
+    early_stopping_rounds = get_early_stopping_rounds(num_rows_train=num_rows)
     # Common model params
     model_params = {
-        "max_depth": 3,
-        "eta": 1,
-        "n_jobs": 10,
+        "max_depth": 6,
+        "min_child_weight": 1,
+        "eta": 0.1,
+        "n_jobs": -1,
         "gpu_id": 0,
-        "early_stopping_rounds": 5,
-        "tree_method": "gpu_hist",
-        "subsample": 0.9,
-        "sampling_method": "gradient_based",
+        "early_stopping_rounds": early_stopping_rounds,
+        # "tree_method": "gpu_hist",
+        "subsample": 1,
+        # "sampling_method": "gradient_based",
+        "gamma": 0.01,
+        "colsample_bytree": 1,
+        "reg_alpha": 0,
+        "reg_lambda": 0
     }
     if random_state:
         model_params["random_state"]=random_state
@@ -101,8 +120,105 @@ def get_xgb_model(task_type:str, output_size: int, random_state=None):
         
     return model
 
-class Model:
-    def __init__(self, metadata):
+def get_lgb_model(task_type:str, output_size: int, num_rows: int, random_state=None):
+    # Adapted from NB360 xgboost example
+    early_stopping_rounds = get_early_stopping_rounds(num_rows_train=num_rows)
+    # Common model params
+    model_params = {
+        "min_data_in_leaf": 20,
+        "feature_fraction": 1,
+        "learning_rate": 0.05,
+        "n_jobs": -1,
+        "gpu_id": 0,
+        "early_stopping_rounds": early_stopping_rounds,
+        # "tree_method": "gpu_hist",
+        "num_leaves": 31,
+        "num_rounds": 10000,
+        # "sampling_method": "gradient_based",
+        "gamma": 0.01,
+        "extra_trees": False,
+        # "reg_alpha": 0,
+        # "reg_lambda": 0
+    }
+    if random_state:
+        model_params["random_state"]=random_state
+    
+    # Cases
+    if task_type=="single-label":
+        if output_size>2: # multi-class
+            model_params = {
+                "objective": "multiclass",
+                "eval_metric": "multi_logloss",
+                "num_class": output_size,
+                **model_params,
+            }
+        else:
+            model_params = { # binary
+                "objective": "binary",
+                "eval_metric": 'binary_logloss',
+                **model_params,
+            }
+        model = LGBMClassifier(**model_params)
+    elif task_type=="continuous":
+        model_params = {
+            **model_params,
+        }
+        model = LGBMRegressor(**model_params)
+    else: 
+        raise NotImplementedError
+        
+    return model
+
+
+def get_rf_model(task_type:str, output_size: int, num_rows: int, random_state=None):
+    # Common model params
+    model_params = {
+        "criterion": "gini",
+        "learning_rate": 0.05,
+        "n_estimators": 300,
+        "bootstrap":True,
+        "n_jobs": -1,
+        "class_weight": "balanced_subsample"
+    }
+    if random_state:
+        model_params["random_state"]=random_state
+    
+    # Cases
+    if task_type=="single-label":
+        # if output_size>2: # multi-class
+        #     model_params.update({"n_estimators": 8})
+        # else:
+        #     model_params = { # binary
+        #         "objective": "binary",
+        #         "eval_metric": 'binary_logloss',
+        #         **model_params,
+        #     }
+        model = RandomForestClassifier(**model_params)
+    elif task_type=="continuous":
+        # model_params = {
+        #     **model_params,
+        # }
+        model = RandomForestRegressor(**model_params)
+    else:
+        raise NotImplementedError
+        
+    return model
+
+
+def get_traditional_model(task_type:str, output_size: int, num_rows: Tuple, name: str, random_state=None):
+    kwargs = dict(task_type=task_type, output_size=output_size, random_state=random_state, num_rows=num_rows)
+    if name == 'xgb':
+        return get_xgb_model(**kwargs)
+    elif name == 'lgb':
+        return get_lgb_model(**kwargs)
+    elif name == "rf":
+        return get_rf_model(**kwargs)
+    else:
+        raise NotImplementedError
+    
+
+class TraditionalModel:
+    def __init__(self, metadata, name):
         '''
         The initalization procedure for your method given the metadata of the task
         '''
@@ -111,6 +227,7 @@ class Model:
           metadata: an DecathlonMetadata object. Its definition can be found in
               ingestion/dev_datasets.py
         """
+        self.name = name
         # Attribute necessary for ingestion program to stop evaluation process
         self.done_training = False
         self.metadata_ = metadata
@@ -135,12 +252,13 @@ class Model:
         print(
             "Device Found = ", self.device, "\nMoving Model and Data into the device..."
         )
-        assert torch.cuda.is_available() # force xgboost on gpu
+        if name == "xgb":
+            assert torch.cuda.is_available() # force xgboost on gpu
         self.input_shape = (channel, sequence_size, row_count, col_count)
         print("\n\nINPUT SHAPE = ", self.input_shape)
 
         # Creating xgb model
-        self.model = get_xgb_model(self.task_type, self.output_dim)
+        self.model = get_traditional_model(self.task_type, self.output_dim, self.name)
         
         # Attributes for managing time budget
         # Cumulated number of training steps
@@ -222,21 +340,25 @@ class Model:
             x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, random_state=random_state)
         
         fit_params = {"verbose":True}
+
+        ##############################
+        if self.name in ["xgb", "lgb"]:
+            fit_params.update(dict(eval_set=[(x_valid, y_valid)]))
+
         self.model.fit(
             x_train,
             y_train,
-            eval_set=[(x_valid, y_valid)],
             **fit_params,
         )
-                
+        ##############################       
         train_end = time.time()
 
 
         train_duration = train_end - train_start
         self.total_train_time += train_duration
         logger.info(
-            "{:.2f} sec used for xgboost. ".format(
-                train_duration
+            "{:.2f} sec used for {}. ".format(
+                train_duration, self.name
             )
             + "Total time used for training: {:.2f} sec. ".format(
                 self.total_train_time
