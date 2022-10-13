@@ -25,6 +25,13 @@ from sklearn.model_selection import train_test_split
 
 import xgboost as xgb
 
+from ConfigSpace.configuration_space import ConfigurationSpace
+from ConfigSpace.hyperparameters import (
+    CategoricalHyperparameter,
+    UniformFloatHyperparameter,
+    UniformIntegerHyperparameter,
+)
+
 # seeding randomness for reproducibility
 np.random.seed(42)
 torch.manual_seed(1)
@@ -52,22 +59,56 @@ def merge_batches(dataloader: DataLoader, is_single_label:bool):
     y_matrix = np.concatenate(y_batches, axis=0)
     
     return x_matrix, y_matrix
+
+
+def get_config_space():
+    cs = ConfigurationSpace()
+
+    max_depth = UniformIntegerHyperparameter(
+            name="max_depth", lower=3, upper=100, default_value=4, log=False
+        )
     
+    eta = UniformIntegerHyperparameter(
+            name="eta", lower=.01, upper=1, default_value=1, log=False
+        )
+
+    n_jobs = UniformIntegerHyperparameter(
+            name="n_jobs", lower=2, upper=100, default_value=10, log=False
+        )
     
-def get_xgb_model(task_type:str, output_size: int, random_state=None):
+    early_stopping_rounds = UniformIntegerHyperparameter(
+            name="early_stopping_rounds", lower=1, upper=50, default_value=10, log=False
+        )
+
+    sub_sample = UniformIntegerHyperparameter(
+            name="sub_sample", lower=0, upper=0.9, default_value=0.7, log=False
+        )
+    
+    sampling_method = CategoricalHyperparameter(
+            name="sampling_method", choices=["uniform", "gradient_based"], default_value="gradient_based"
+        )
+
+    cs.add_hyperparameters([max_depth, eta, n_jobs,early_stopping_rounds,sub_sample, sampling_method  ])
+    return cs
+ 
+        
+    
+def get_xgb_model(task_type:str, output_size: int, random_state=None , model_params):
     # Adapted from NB360 xgboost example
     
     # Common model params
-    model_params = {
-        "max_depth": 3,
-        "eta": 1,
-        "n_jobs": 10,
-        "gpu_id": 0,
-        "early_stopping_rounds": 5,
-        "tree_method": "gpu_hist",
-        "subsample": 0.9,
-        "sampling_method": "gradient_based",
-    }
+    #model_params = {
+    #    "max_depth": 3,
+    #    "eta": 1,
+    #    "n_jobs": 10,
+    #    "gpu_id": 0,
+    #    "early_stopping_rounds": 5,
+    #    "tree_method": "gpu_hist",
+    #    "subsample": 0.9,
+    #    "sampling_method": "gradient_based",
+    #}
+
+
     if random_state:
         model_params["random_state"]=random_state
     
@@ -222,6 +263,7 @@ class Model:
             x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, random_state=random_state)
         
         fit_params = {"verbose":True}
+
         self.model.fit(
             x_train,
             y_train,
