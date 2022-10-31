@@ -71,7 +71,7 @@ def inv_map_score(solution, prediction):
 
 
 def nll_score(solution, prediction):
-    return loss_metric(solution, prediction, partial(torch.nn.BCELoss))
+    return loss_metric(prediction, solution, partial(torch.nn.BCELoss))
 
 
 def false_negative_rate(solution, prediction):
