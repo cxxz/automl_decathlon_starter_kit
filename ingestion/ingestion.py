@@ -166,7 +166,7 @@ def write_start_file(output_dir, start_time=None, time_budget=None, task_name=No
         f.write("task_name: {}\n".format(task_name))
         f.write("time_budget: {}\n".format(time_budget))
         f.write("start_time: {}\n".format(start_time))
-    logger.debug("Finished writing 'start.txt' file.")
+    logger.debug("Initialized writing 'start.txt' file.")
 
 
 def write_timestamp(output_dir, predict_idx, timestamp):
@@ -510,15 +510,15 @@ if __name__ == "__main__":
                 ingestion_main(ingestion_success, args, task)
         except TimeoutException as e:
             logger.info(
-                "Ingestion timed out on {}; will remove prediction directory".format(
+                "Ingestion timed out on {}".format(
                     task
                 )
             )
-            data_io.rmdir(args.output_dir)
+            #data_io.rmdir(args.output_dir)
 
         except Exception as e:
             logger.error("Ingestion failed!")
             logger.error("Encountered exception:\n" + str(e), exc_info=True)
-            data_io.rmdir(args.output_dir)
+            #data_io.rmdir(args.output_dir)
 
         logger.info("Ended ingestion for {}".format(task))
